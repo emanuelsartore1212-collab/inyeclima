@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>InyeClima | Repuestos de aire acondicionado automotor</title>
+<style>
+/* ===== COLORES (tokens). Cambiá estos valores para cambiar el estilo ===== */
+:root{
+  --bg:#f4f8fb; --card:#ffffff; --text:#14232e; --muted:#5b6b78;
+  --brand:#0a7bc4; --brand-text:#ffffff; --border:#d9e4ec; --wa:#1fa855;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1a22; --card:#16262f; --text:#e8f1f7; --muted:#94a8b6;
+    --brand:#3aa6ec; --brand-text:#06131b; --border:#25394560;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1a22; --card:#16262f; --text:#e8f1f7; --muted:#94a8b6;
+  --brand:#3aa6ec; --brand-text:#06131b; --border:#25394560;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.5}
+.wrap{max-width:1000px;margin:0 auto;padding:0 16px}
+
+/* ===== CABECERA ===== */
+header{background:var(--brand);color:var(--brand-text);padding:28px 0 22px}
+header h1{margin:0;font-size:1.9rem}
+header p{margin:6px 0 0;opacity:.92}
+
+/* ===== BUSCADOR Y FILTROS ===== */
+.filtros{display:grid;gap:10px;grid-template-columns:1fr;margin:18px 0}
+@media(min-width:640px){.filtros{grid-template-columns:2fr 1fr 1fr}}
+input,select{width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--card);color:var(--text);font-size:1rem}
+
+/* ===== TARJETAS DE PRODUCTOS ===== */
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));padding-bottom:30px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:6px}
+.icono{font-size:2.4rem;background:var(--bg);border-radius:10px;text-align:center;padding:14px 0}
+.card h3{margin:6px 0 0;font-size:1.05rem}
+.tag{font-size:.78rem;color:var(--muted)}
+.card p{margin:0;font-size:.92rem;color:var(--muted);flex:1}
+.btn-wa{background:var(--wa);color:#fff;border:0;border-radius:10px;padding:12px;font-size:1rem;font-weight:600;cursor:pointer;margin-top:6px}
+.vacio{text-align:center;color:var(--muted);padding:30px 0}
+
+/* ===== VENTANA PARA ELEGIR VENDEDOR ===== */
+#modal{position:fixed;inset:0;background:#000a;display:none;align-items:center;justify-content:center;padding:16px;z-index:10}
+#modal.abierto{display:flex}
+.modal-box{background:var(--card);border-radius:14px;padding:20px;max-width:360px;width:100%}
+.modal-box button{display:block;width:100%;margin-top:8px;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:1rem;cursor:pointer}
+footer{border-top:1px solid var(--border);padding:20px 0;text-align:center;color:var(--muted);font-size:.9rem}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <h1>❄️ InyeClima</h1>
+    <p>Repuestos de aire acondicionado para el automotor. Consultá por WhatsApp.</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="filtros">
+    <input id="buscar" type="search" placeholder="Buscar: compresor, código, modelo...">
+    <select id="fCategoria"></select>
+    <select id="fMarca"></select>
+  </div>
+  <div id="lista" class="grid"></div>
+</main>
+
+<footer><div class="wrap">© InyeClima · Atención por WhatsApp</div></footer>
+
+<div id="modal">
+  <div class="modal-box">
+    <strong>¿Con quién querés hablar?</strong>
+    <div id="opciones"></div>
+    <button onclick="cerrarModal()">Cancelar</button>
+  </div>
+</div>
+
+<script>
+/* =====================================================
+   1) CONFIGURACIÓN: lo único que tenés que editar seguido
+   ===================================================== */
+const CONFIG = {
+  negocio: "InyeClima",
+
+  // "elegir" = el cliente elige con quién hablar
+  // "rotar"  = se reparten las consultas entre los números, uno tras otro
+  modo: "elegir",
+
+  // Agregá todos los números que quieras.
+  // Formato Argentina celular: 549 + código de área (sin 0) + número (sin 15)
+  vendedores: [
+    { nombre: "Ventas", numero: "5493425222987" }
+    // { nombre: "Juan", numero: "549342XXXXXXX" },
+    // { nombre: "María", numero: "549342XXXXXXX" },
+  ]
+};
+
+/* =====================================================
+   2) PRODUCTOS: para agregar uno, copiá un bloque { ... },
+   y pegalo a continuación (no olvides la coma)
+   ===================================================== */
+const PRODUCTOS = [
+  { nombre: "Compresor de A/A 7SBU16C", codigo: "CMP-001", categoria: "Compresores",
+    marcas: ["Volkswagen","Audi"], modelos: "Golf, Bora, Vento 1999-2012",
+    desc: "Compresor reacondicionado con garantía.", icono: "⚙️" },
+  { nombre: "Compresor de A/A 10S11C", codigo: "CMP-002", categoria: "Compresores",
+    marcas: ["Toyota"], modelos: "Corolla 2009-2018",
+    desc: "Compresor nuevo, incluye polea y embrague.", icono: "⚙️" },
+  { nombre: "Condensador aluminio", codigo: "CND-014", categoria: "Condensadores",
+    marcas: ["Ford"], modelos: "Focus 2008-2013",
+    desc: "Condensador de aluminio de alto rendimiento.", icono: "🧊" },
+  { nombre: "Condensador paralelo", codigo: "CND-021", categoria: "Condensadores",
+    marcas: ["Fiat"], modelos: "Palio, Siena 2004-2016",
+    desc: "Radiador de aire acondicionado, nuevo.", icono: "🧊" },
+  { nombre: "Evaporador de cabina", codigo: "EVP-007", categoria: "Evaporadores",
+    marcas: ["Chevrolet"], modelos: "Corsa Classic 2003-2016",
+    desc: "Evaporador para equipo interior.", icono: "❄️" },
+  { nombre: "Filtro deshidratador", codigo: "FLT-003", categoria: "Filtros",
+    marcas: ["Volkswagen","Ford","Fiat"], modelos: "Consultar por modelo",
+    desc: "Filtro secador con sello. Se cambia en cada reparación.", icono: "🔩" },
+  { nombre: "Válvula de expansión", codigo: "VLV-010", categoria: "Válvulas",
+    marcas: ["Renault"], modelos: "Clio, Logan 2005-2015",
+    desc: "Válvula tipo bloque original.", icono: "🔧" },
+  { nombre: "Válvula de expansión", codigo: "VLV-012", categoria: "Válvulas",
+    marcas: ["Peugeot","Citroën"], modelos: "206, 207, C3 2004-2014",
+    desc: "Válvula termostática nueva.", icono: "🔧" },
+  { nombre: "Manguera de alta presión", codigo: "MNG-005", categoria: "Mangueras",
+    marcas: ["Toyota"], modelos: "Hilux 2005-2015",
+    desc: "Manguera con terminales de aluminio.", icono: "🧵" },
+  { nombre: "Electroventilador condensador", codigo: "EVT-002", categoria: "Electroventiladores",
+    marcas: ["Chevrolet","Fiat"], modelos: "Onix, Argo, Cronos",
+    desc: "Motor con aspas, 12V.", icono: "🌀" }
+];
+
+/* =====================================================
+   3) LÓGICA DE LA PÁGINA (no hace falta tocarla al inicio)
+   ===================================================== */
+const $ = id => document.getElementById(id);
+let turno = 0;          // para el modo "rotar"
+let productoActual = null;
+
+// Arma las opciones de los filtros a partir de los productos
+function llenarFiltros() {
+  const cats = [...new Set(PRODUCTOS.map(p => p.categoria))].sort();
+  const marcas = [...new Set(PRODUCTOS.flatMap(p => p.marcas))].sort();
+  $("fCategoria").innerHTML = '<option value="">Todas las categorías</option>' +
+    cats.map(c => `<option>${c}</option>`).join("");
+  $("fMarca").innerHTML = '<option value="">Todas las marcas</option>' +
+    marcas.map(m => `<option>${m}</option>`).join("");
+}
+
+// Muestra los productos que cumplan con la búsqueda y los filtros
+function mostrar() {
+  const q = $("buscar").value.toLowerCase().trim();
+  const cat = $("fCategoria").value;
+  const marca = $("fMarca").value;
+
+  const lista = PRODUCTOS.filter(p =>
+    (!cat || p.categoria === cat) &&
+    (!marca || p.marcas.includes(marca)) &&
+    (!q || (p.nombre + p.codigo + p.modelos + p.marcas.join(" ")).toLowerCase().includes(q))
+  );
+
+  $("lista").innerHTML = lista.length ? lista.map(p => `
+    <article class="card">
+      <div class="icono">${p.icono}</div>
+      <h3>${p.nombre}</h3>
+      <span class="tag">Cód. ${p.codigo} · ${p.categoria}</span>
+      <span class="tag">🚗 ${p.marcas.join(", ")} — ${p.modelos}</span>
+      <p>${p.desc}</p>
+      <button class="btn-wa" onclick="consultar('${p.codigo}')">💬 Consultar por WhatsApp</button>
+    </article>`).join("")
+    : '<div class="vacio" style="grid-column:1/-1">No encontramos productos. ¡Escribinos igual por WhatsApp y lo buscamos!</div>';
+}
+
+// Se ejecuta al tocar "Consultar"
+function consultar(codigo) {
+  productoActual = PRODUCTOS.find(p => p.codigo === codigo);
+  const v = CONFIG.vendedores;
+  if (v.length === 1) return abrirWhatsApp(v[0]);
+  if (CONFIG.modo === "rotar") return abrirWhatsApp(v[turno++ % v.length]);
+  // modo "elegir": mostramos la ventana con los vendedores
+  $("opciones").innerHTML = v.map((x, i) =>
+    `<button onclick="elegir(${i})">💬 ${x.nombre}</button>`).join("");
+  $("modal").classList.add("abierto");
+}
+function elegir(i) { cerrarModal(); abrirWhatsApp(CONFIG.vendedores[i]); }
+function cerrarModal() { $("modal").classList.remove("abierto"); }
+
+// Arma el mensaje y abre WhatsApp
+function abrirWhatsApp(vendedor) {
+  const p = productoActual;
+  const texto = `Hola ${CONFIG.negocio}, quiero consultar por: ${p.nombre} (cód. ${p.codigo}) ` +
+    `para ${p.marcas.join("/")} ${p.modelos}. ¿Tienen disponibilidad y precio?`;
+  window.open(`https://wa.me/${vendedor.numero}?text=${encodeURIComponent(texto)}`, "_blank");
+}
+
+// Al escribir o cambiar un filtro, se actualiza la lista
+["buscar","fCategoria","fMarca"].forEach(id => $(id).addEventListener("input", mostrar));
+
+llenarFiltros();
+mostrar();
+</script>
+</body>
+</html>
